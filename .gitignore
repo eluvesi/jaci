@@ -1,0 +1,10 @@
+# binary
+jaci
+
+# objects
+*.o
+
+# generated sources
+parser.h
+lexer.c
+parser.c
