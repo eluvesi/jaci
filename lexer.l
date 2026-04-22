@@ -50,6 +50,8 @@ enum token
 	NUMBER,
 	STRING
 };
+
+int comment_level = 0;
 %}
 
 %option yylineno noyywrap noinput nounput
@@ -68,31 +70,33 @@ HEX_FLOAT	{HEX_DIGIT}*"."{HEX_DIGIT}+|{HEX_DIGIT}+"."{HEX_DIGIT}*
 DECIMAL  	({INT}|{FLOAT})({EXP})?
 HEXIMAL  	0[xX]({HEX_INT}|{HEX_FLOAT})({HEX_EXP})?
 
+%x long_comment
+
 %%
 
-"and"     	{ puts("AND");      return AND;      }
-"break"   	{ puts("BREAK");    return BREAK;    }
-"do"      	{ puts("DO");       return DO;       }
-"else"    	{ puts("ELSE");     return ELSE;     }
-"elseif"  	{ puts("ELSEIF");   return ELSEIF;   }
-"end"     	{ puts("END");      return END;      }
-"false"   	{ puts("FALSE");    return FALSE;    }
-"for"     	{ puts("FOR");      return FOR;      }
-"function"	{ puts("FUNCTION"); return FUNCTION; }
-"global"  	{ puts("GLOBAL");   return GLOBAL;   }
-"goto"    	{ puts("GOTO");     return GOTO;     }
-"if"      	{ puts("IF");       return IF;       }
-"in"      	{ puts("IN");       return IN;       }
-"local"   	{ puts("LOCAL");    return LOCAL;    }
-"nil"     	{ puts("NIL");      return NIL;      }
-"not"     	{ puts("NOT");      return NOT;      }
-"or"      	{ puts("OR");       return OR;       }
-"repeat"  	{ puts("REPEAT");   return REPEAT;   }
-"return"  	{ puts("RETURN");   return RETURN;   }
-"then"    	{ puts("THEN");     return THEN;     }
-"true"    	{ puts("TRUE");     return TRUE;     }
-"until"   	{ puts("UNTIL");    return UNTIL;    }
-"while"   	{ puts("WHILE");    return WHILE;    }
+and     	{ puts("AND");      return AND;      }
+break   	{ puts("BREAK");    return BREAK;    }
+do      	{ puts("DO");       return DO;       }
+else    	{ puts("ELSE");     return ELSE;     }
+elseif  	{ puts("ELSEIF");   return ELSEIF;   }
+end     	{ puts("END");      return END;      }
+false   	{ puts("FALSE");    return FALSE;    }
+for     	{ puts("FOR");      return FOR;      }
+function	{ puts("FUNCTION"); return FUNCTION; }
+global  	{ puts("GLOBAL");   return GLOBAL;   }
+goto    	{ puts("GOTO");     return GOTO;     }
+if      	{ puts("IF");       return IF;       }
+in      	{ puts("IN");       return IN;       }
+local   	{ puts("LOCAL");    return LOCAL;    }
+nil     	{ puts("NIL");      return NIL;      }
+not     	{ puts("NOT");      return NOT;      }
+or      	{ puts("OR");       return OR;       }
+repeat  	{ puts("REPEAT");   return REPEAT;   }
+return  	{ puts("RETURN");   return RETURN;   }
+then    	{ puts("THEN");     return THEN;     }
+true    	{ puts("TRUE");     return TRUE;     }
+until   	{ puts("UNTIL");    return UNTIL;    }
+while   	{ puts("WHILE");    return WHILE;    }
 
 [_[:alpha:]][_[:alnum:]]*	{
                        			printf("NAME(%s)\n", yytext);
@@ -153,6 +157,13 @@ HEXIMAL  	0[xX]({HEX_INT}|{HEX_FLOAT})({HEX_EXP})?
 "{" 	{ puts("LBRACE"); return LBRACE; }
 "}" 	{ puts("RBRACE"); return RBRACE; }
 
+"--[""="*"["	{
+            		/* beginning of a long comment */
+            		comment_level = yyleng - 4;  /* number of '=' */
+            		printf("COMMENT OPENED(%s), %d\n", yytext, comment_level);
+            		BEGIN(long_comment);
+            	}
+
 "--".*      	/* eat up short comments */
 [[:space:]]+	/* eat up space symbols  */
 
@@ -162,6 +173,19 @@ HEXIMAL  	0[xX]({HEX_INT}|{HEX_FLOAT})({HEX_EXP})?
  		        yylineno, yytext[0], (unsigned char)yytext[0]);
  		/* continue */
  	}
+
+<long_comment>{
+	"]""="*"]"	{
+	          		/* maybe the ending of a long comment */
+	          		if (yyleng - 2 == comment_level) {
+	          			/* if levels match, then comment is over */
+	          			printf("COMMENT CLOSED(%s), %d\n", yytext, yyleng - 2);
+	          			BEGIN(INITIAL);
+	          		}
+	          		/* otherwise it's just text inside a comment */
+	          	}
+	.|\n  /* eat up text inside long comment */
+}
 
 %%
 
