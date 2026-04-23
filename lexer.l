@@ -52,8 +52,8 @@ enum token
 };
 
 char string_delim;
-int string_level;
-int comment_level;
+int long_level;
+int long_is_string;
 %}
 
 %option yylineno noyywrap noinput nounput
@@ -68,7 +68,7 @@ HEX_FLOAT	[[:xdigit:]]*"."[[:xdigit:]]+|[[:xdigit:]]+"."[[:xdigit:]]*
 DECIMAL  	({INT}|{FLOAT})({EXP})?
 HEXIMAL  	0[xX]({HEX_INT}|{HEX_FLOAT})({HEX_EXP})?
 
-%x long_comment long_string comment string escape
+%x comment long_literal string
 
 %%
 
@@ -109,18 +109,18 @@ while   	{ puts("WHILE");    return WHILE;    }
 
 --\[=*\[	{
         		/* beginning of a long comment */
-        		comment_level = yyleng - 4;  /* number of '=' */
-        		printf("LONG COMMENT BEGIN(%s), %d\n", yytext, comment_level);
-        		BEGIN(long_comment);
+        		long_level = yyleng - 4;  /* number of '=' */
+        		long_is_string = 0;
+        		printf("LONG COMMENT BEGIN(%s), %d\n", yytext, long_level);
+        		BEGIN(long_literal);
         	}
-
---  	BEGIN(comment);
 
 \[=*\[	{
       		/* beginning of a long literal string */
-      		string_level = yyleng - 2;  /* number of '=' */
-      		printf("LONG STRING BEGIN(%s), %d\n", yytext, string_level);
-      		BEGIN(long_string);
+      		long_level = yyleng - 2;  /* number of '=' */
+      		long_is_string = 1;
+      		printf("LONG STRING BEGIN(%s), %d\n", yytext, long_level);
+      		BEGIN(long_literal);
       	}
 
 ["']	{
@@ -129,6 +129,8 @@ while   	{ puts("WHILE");    return WHILE;    }
     		printf("STRING BEGIN(%c)\n", string_delim);
     		BEGIN(string);
     	}
+
+--  	BEGIN(comment);
 
 "..."	{ puts("ELLIPSIS"); return ELLIPSIS; }
 ".." 	{ puts("CONCAT");   return CONCAT;   }
@@ -173,53 +175,34 @@ while   	{ puts("WHILE");    return WHILE;    }
  		/* continue */
  	}
 
-<long_comment>{
-	\]=*\]	{
-	       		/* maybe it's the ending of a long comment */
-	       		if (yyleng - 2 == comment_level) {
-	       			/* if levels match, then comment is over */
-	       			printf("LONG COMMENT END(%s), %d\n", yytext, yyleng - 2);
-	       			BEGIN(INITIAL);
-	       		}
-	       		/* otherwise it's just text inside a comment */
-	       	}
-
-	<<EOF>>	{
-	       		fprintf(stderr,
-	       		        "lexical error at line %d: unfinished long comment\n",
-	       		        yylineno);
-	       		yyterminate();
-	       	}
-
-	.|\n   	/* eat up text inside long comment */
-}
-
 <comment>{
 	\n  	BEGIN(INITIAL);
 
 	.   	/* eat up text inside comment */
 }
 
-<long_string>{
+<long_literal>{
 	\]=*\]	{
-	       		/* maybe it's the ending of a long literal string */
-	       		if (yyleng - 2 == string_level) {
-	       			/* if levels match, then string is over */
+	       		/* maybe it's the ending of a long literal (string/comment) */
+	       		if (yyleng - 2 == long_level) {
+	       			/* if levels match, then long literal is over */
+	       			printf("LONG LITERAL END(%s), %d\n", yytext, yyleng - 2);
 	       			BEGIN(INITIAL);
-	       			printf("LONG STRING END(%s), %d\n", yytext, yyleng - 2);
-	       			return STRING;
+	       			if (long_is_string)
+	       				return STRING;
 	       		}
-	       		/* otherwise it's just text inside a string */
+	       		/* otherwise it's just text inside a comment */
 	       	}
 
 	<<EOF>>	{
 	       		fprintf(stderr,
-	       		        "lexical error at line %d: unfinished long string\n",
-	       		        yylineno);
+	       		        "lexical error at line %d: unfinished long %s\n",
+	       		        yylineno,
+	       		        long_is_string ? "string" : "comment");
 	       		yyterminate();
 	       	}
 
-	.|\n   	/* eat up long string content */
+	.|\n   	/* eat up text inside long comment */
 }
 
 <string>{
@@ -234,14 +217,25 @@ while   	{ puts("WHILE");    return WHILE;    }
 	       		/* otherwise it's just quote symbol inside a string */
 	       	}
 
-	\\     	BEGIN(escape);  /* beginning of escape sequence */
+	\\[abfnrtv]         	/* valid escape sequences: \a, \b, \f, \n, ... */
+	\\[\"\'\n\\]        	/* ", ', \n and \ characters escaping */
+	\\z[[:space:]]*     	/* \z (skip spaces) */
+	\\[[:digit:]]{1,3}  	/* \ddd (decimal byte value) */
+	\\x[[:xdigit:]]{2}  	/* \xXX (heximal byte value) */
+	\\u\{[[:xdigit:]]+\}	/* \u{XXX} (unicode character) */
 
-	\n     	{
-	       		fprintf(stderr,
-	       		        "lexical error at line %d: unfinished string\n",
-	       		        yylineno - 1);
-	       		BEGIN(INITIAL);
-	       	}
+	\\.	{
+	   		fprintf(stderr,
+	   		        "lexical error at line %d: unknown escape character %s\n",
+	   		        yylineno, yytext);
+	   	}
+
+	\n 	{
+	   		fprintf(stderr,
+	   		        "lexical error at line %d: unfinished string\n",
+	   		        yylineno - 1);
+	   		BEGIN(INITIAL);
+	   	}
 
 	<<EOF>>	{
 	       		fprintf(stderr,
@@ -251,31 +245,6 @@ while   	{ puts("WHILE");    return WHILE;    }
 	       	}
 
 	.   	/* eat up string content */
-}
-
-<escape>{
-	a                 	|               /* '\a' (bell) */
-	b                 	|               /* '\b' (backspace) */
-	f                 	|               /* '\f' (form feed) */
-	n                 	|               /* '\n' (newline) */
-	r                 	|               /* '\r' (carriage return) */
-	t                 	|               /* '\t' (horizontal tab) */
-	v                 	|               /* '\v' (vertical tab) */
-	\\                	|               /* '\\' (backslash) */
-	\"                	|               /* '\"' (quotation mark) */
-	\'                	|               /* '\'' (apostrophe) */
-	\n                	|               /* '\\n' (string continuation) */
-	z[[:space:]]*     	|               /* '\z' (skip spaces) */
-	[[:digit:]]{1,3}  	|               /* '\ddd' (decimal byte value) */
-	x[[:xdigit:]]{2}  	|               /* '\xXX' (heximal byte value) */
-	u\{[[:xdigit:]]+\}	BEGIN(string);  /* '\u{XXX}' (Unicode character) */
-
-	.	{
-	 		fprintf(stderr,
-	 		        "lexical error at line %d: invalid escape sequence \\%c\n",
-	 		        yylineno, yytext[0]);
-	 		BEGIN(string);
-	 	}
 }
 
 %%
