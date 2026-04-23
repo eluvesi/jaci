@@ -1,55 +1,5 @@
 %{
-enum token
-{
-	/* keywords */
-	AND, BREAK, DO, ELSE, ELSEIF, END,
-	FALSE, FOR, FUNCTION, GLOBAL, GOTO, IF,
-	IN, LOCAL, NIL, NOT, OR, REPEAT,
-	RETURN, THEN, TRUE, UNTIL, WHILE,
-	
-	/* operations */
-	ADD,     /* +  */
-	SUB,     /* -  */
-	MUL,     /* *  */
-	DIV,     /* /  */
-	MOD,     /* %  */
-	POW,     /* ^  */
-	LEN,     /* #  */
-	BAND,    /* &  */
-	BNOT,    /* ~  */
-	BOR,     /* |  */
-	SHL,     /* << */
-	SHR,     /* >> */
-	IDIV,    /* // */
-	EQ,      /* == */
-	NE,      /* ~= */
-	LE,      /* <= */
-	GE,      /* >= */
-	LT,      /* <  */
-	GT,      /* >  */
-	ASSIGN,  /* =  */
-	
-	/* symbols */
-	LPAREN,    /* (   */
-	RPAREN,    /* )   */
-	LBRACE,    /* {   */
-	RBRACE,    /* }   */
-	LBRACK,    /* [   */
-	RBRACK,    /* ]   */
-	LABEL,     /* :: */
-	SEMI,      /* ;   */
-	COLON,     /* :   */
-	COMMA,     /* ,   */
-	DOT,       /* .   */
-	CONCAT,    /* ..  */
-	ELLIPSIS,  /* ... */
-
-	
-	/* other */
-	NAME,
-	NUMBER,
-	STRING
-};
+#include "parser.h"
 
 char string_delim;
 int long_level;
@@ -150,13 +100,13 @@ while   	{ puts("WHILE");    return WHILE;    }
 "^" 	{ puts("POW");  return POW;  }
 "#" 	{ puts("LEN");  return LEN;  }
 "&" 	{ puts("BAND"); return BAND; }
-"~" 	{ puts("BNOT"); return BNOT; }
 "|" 	{ puts("BOR");  return BOR;  }
+"~" 	{ puts("BXOR"); return BXOR; }
 "<" 	{ puts("LT");   return LT;   }
 ">" 	{ puts("GT");   return GT;   }
 "=" 	{ puts("ASSIGN"); return ASSIGN; }
-":"  	{ puts("COLON");  return COLON;  }
 ";"  	{ puts("SEMI");   return SEMI;   }
+":"  	{ puts("COLON");  return COLON;  }
 ","  	{ puts("COMMA");  return COMMA;  }
 "."  	{ puts("DOT");    return DOT;    }
 "("		{ puts("LPAREN"); return LPAREN; }
@@ -248,30 +198,3 @@ while   	{ puts("WHILE");    return WHILE;    }
 }
 
 %%
-
-int main(int argc, char *argv[])
-{
-	/* setup input */
-	if (argc != 2) {
-		fprintf(stderr, "Usage: ./jaci [FILE]\n");
-		return 1;
-	} else {
-		yyin = fopen(argv[1], "r");
-		if (!yyin) {
-			perror(argv[1]);
-			return 1;
-		}
-	}
-	
-	/* parse input */
-	int tok;
-	while ((tok = yylex()) != 0) {
-		/* lexer-only mode */
-	}
-	
-	/* close input file */
-	if (yyin != stdin)
-		fclose(yyin);
-	
-	return 0;
-}

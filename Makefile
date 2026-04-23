@@ -1,11 +1,13 @@
 CC = gcc
 LEX = flex
+YACC = bison
 
 CFLAGS = -Wall -Wextra -Wpedantic -std=gnu99
+YFLAGS = -d -Wcounterexamples
 
 TARGET = jaci
 
-OBJ = lexer.o
+OBJ = main.o lexer.o parser.o
 
 all: $(TARGET)
 
@@ -16,17 +18,26 @@ $(TARGET): $(OBJ)
 
 
 # object files
+main.o: main.c
+	$(CC) $(CFLAGS) -c $<
+
 lexer.o: lexer.c
 	$(CC) $(CFLAGS) -c $<
 
+parser.o: parser.c
+	$(CC) $(CFLAGS) -c $<
 
-# lex
-lexer.c: lexer.l
+
+# lex/yacc
+lexer.c: lexer.l parser.h
 	$(LEX) -o $@ $<
+
+parser.c parser.h: parser.y
+	$(YACC) $(YFLAGS) $<
 
 
 # clean
 clean:
-	rm -f $(TARGET) $(OBJ) lexer.c
+	rm -f $(TARGET) $(OBJ) lexer.c parser.c parser.h
 
 .PHONY: all clean
