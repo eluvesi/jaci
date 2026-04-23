@@ -3,10 +3,12 @@
 
 	extern int yylineno;
 	extern char *yytext;
+	extern int error_count;
 
 	int yylex(void);
 	void yyerror(const char *s)
 	{
+		error_count++;
 		fprintf(stderr, "%s at line %d near '%s'\n", s,
 		        yytext[0] == '\n' ? yylineno - 1 : yylineno,
 		        yytext[0] == '\n' ? "\\n" : yytext);
@@ -209,6 +211,7 @@ exp:
 
 prefixexp:
 	  var
+	| functioncall
 	| LPAREN exp RPAREN
 	;
 

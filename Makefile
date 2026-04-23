@@ -3,7 +3,7 @@ LEX = flex
 YACC = bison
 
 CFLAGS = -Wall -Wextra -Wpedantic -std=gnu99
-YFLAGS = -d -Wcounterexamples
+YFLAGS = -d
 
 TARGET = jaci
 
