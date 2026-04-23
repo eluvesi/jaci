@@ -8,3 +8,6 @@ jaci
 parser.h
 lexer.c
 parser.c
+
+# files for testing
+*.lua
