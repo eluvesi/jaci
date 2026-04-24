@@ -1,7 +1,7 @@
 %{
 #include "parser.h"
 
-extern int error_count;
+extern int errcount;
 
 char string_delim;
 int long_level;
@@ -110,7 +110,7 @@ while   	return WHILE;
 [[:space:]]+	/* eat up space symbols  */
 
 .	{
- 		error_count++;
+ 		errcount++;
  		fprintf(stderr,
  		        "lexiacal error at line %d: illegal character '%c' (%d)\n",
  		        yylineno, yytext[0], (unsigned char)yytext[0]);
@@ -135,7 +135,7 @@ while   	return WHILE;
 	       	}
 
 	<<EOF>>	{
-	       		error_count++;
+	       		errcount++;
 	       		fprintf(stderr,
 	       		        "lexical error at line %d: unfinished long %s\n",
 	       		        yylineno,
@@ -143,7 +143,7 @@ while   	return WHILE;
 	       		yyterminate();
 	       	}
 
-	.|\n   	/* eat up text inside long comment */
+	.|\n   	/* eat up text inside long literal */
 }
 
 <string>{
@@ -165,29 +165,30 @@ while   	return WHILE;
 	\\u\{[[:xdigit:]]+\}	/* \u{XXX} (unicode character) */
 
 	\\.	{
-	   		error_count++;
+	   		errcount++;
 	   		fprintf(stderr,
 	   		        "lexical error at line %d: unknown escape character %s\n",
 	   		        yylineno, yytext);
 	   	}
 
 	\n 	{
-	   		error_count++;
+	   		errcount++;
 	   		fprintf(stderr,
 	   		        "lexical error at line %d: unfinished string\n",
 	   		        yylineno - 1);
 	   		BEGIN(INITIAL);
+	   		return STRING;
 	   	}
 
 	<<EOF>>	{
-	       		error_count++;
+	       		errcount++;
 	       		fprintf(stderr,
 	       		        "lexical error at line %d: unfinished string\n",
 	       		        yylineno);
 	       		yyterminate();
 	       	}
 
-	.   	/* eat up string content */
+	.   	/* eat up text inside string */
 }
 
 %%

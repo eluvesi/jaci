@@ -4,7 +4,7 @@
 extern FILE *yyin;
 extern int yyparse(void);
 
-int error_count = 0;  /* counter for lexical and syntax errors */
+int errcount = 0;  /* counter for lexical and syntax errors */
 
 
 int main(int argc, char *argv[])
@@ -23,10 +23,10 @@ int main(int argc, char *argv[])
 	
 	/* parse input */
 	yyparse();
-	if (error_count == 0)
+	if (errcount == 0)
 		printf("OK: program is correct\n");
 	else
-		printf("FAIL: %d error(s) found\n", error_count);
+		printf("FAIL: %d error(s) found\n", errcount);
 	
 	/* close input file */
 	fclose(yyin);
