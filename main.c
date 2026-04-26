@@ -20,16 +20,16 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
-	
+
 	/* parse input */
 	yyparse();
 	if (errcount == 0)
 		printf("OK: program is correct\n");
 	else
 		printf("FAIL: %d error(s) found\n", errcount);
-	
+
 	/* close input file */
 	fclose(yyin);
-	
+
 	return 0;
 }

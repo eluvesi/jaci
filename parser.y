@@ -77,9 +77,13 @@ stat:
 	| DO error END
 		{ errmsg("invalid 'do ... end' block body"); yyerrok; }
 	| WHILE exp DO block END
+	| WHILE error DO block END
+		{ errmsg("invalid 'while' loop condition"); yyerrok; }
 	| WHILE exp DO error END
 		{ errmsg("invalid 'while' loop body"); yyerrok; }
 	| REPEAT block UNTIL exp
+	| REPEAT block UNTIL error
+		{ errmsg("invalid 'repeat ... until' loop condition"); yyerrok; }
 	| REPEAT error UNTIL exp
 		{ errmsg("invalid 'repeat ... until' loop body"); yyerrok; }
 	| IF exp THEN block elseif_list opt_else_block END
@@ -141,7 +145,7 @@ attrib:
 
 retstat:
 	  RETURN opt_explist opt_semi
-    ;
+	;
 
 opt_explist:
 	  /* empty */
@@ -161,7 +165,7 @@ label:
 
 funcname:
 	  NAME dot_name_list opt_colon_name
-    ;
+	;
 
 dot_name_list:
 	  /* empty */
@@ -174,11 +178,11 @@ opt_colon_name:
 	;
 
 varlist:
-      var
-    | varlist COMMA var
+	  var
+	| varlist COMMA var
 	| varlist error COMMA var
 		{ errmsg("invalid variable list"); yyerrok; }
-    ;
+	;
 
 var:
 	  NAME
