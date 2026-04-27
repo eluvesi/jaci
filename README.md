@@ -35,8 +35,9 @@ Jaci watches over the moon - just as the tool watches over Lua code.
 
 ---
 
-### AUTHOR
-[eluvesi](https://github.com/eluvesi)
+### AUTHORS
+[eluvesi](https://github.com/eluvesi),
+[Alexandra-ls](https://github.com/Alexandra-ls)
 
 ---
 
