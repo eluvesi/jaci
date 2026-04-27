@@ -138,8 +138,7 @@ while   	return WHILE;
 	       		errcount++;
 	       		fprintf(stderr,
 	       		        "lexical error at line %d: unfinished long %s\n",
-	       		        yylineno,
-	       		        long_is_string ? "string" : "comment");
+	       		        yylineno, long_is_string ? "string" : "comment");
 	       		yyterminate();
 	       	}
 
